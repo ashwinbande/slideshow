@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        * {
+            padding: 0;
+            margin: 0;
+        }
+        .title_bar{
+            padding: 5px 10px;
+            background-color: aquamarine;
+        }
+        .title_bar h3 {
+            display: inline;
+        }
+        .slide__container {
+            display: flex;
+            flex-direction: column;
+            padding-bottom: 300px;
+        }
+        .slide__container .slide__name {
+            margin: auto;
+            display: flex;
+            position: relative;
+        }
+        .slide__container .slide__name:after {
+            content: attr(data-serial);
+            position: absolute;
+            left: 300px;
+        }
+        .slide__container .slide__image {
+            width: 60%;
+            margin: auto;
+            position: relative;
+        }
+        .slide__container .slide__image .move_button {
+            position: absolute;
+            font-size: 40px;
+            color: white;
+            top: 40%;
+            user-select: none;
+            cursor: pointer;
+            opacity: 0.3;
+            padding: 0 0 8px 0;
+        }
+        .slide__container .slide__image .move_button:hover {
+            background-color: rgba(0, 0, 0, 0.4);
+            opacity: 0.8;
+        }
+        .slide__container .slide__image .slide__audio {
+            width: 100%;
+            height: 20px;
+            border-radius: 0;
+        }
+        .slide__container .slide__form {
+            width: 60%;
+            margin: auto;
+            height: 20px;
+        }
+        .slide__container .slide__form .radio {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+<template id="slideComp">
+    <div class="slide__container">
+        <div class="slide__name" :data-serial="`${serial[0]}/${serial[1]}`">
+            [[ name ]]
+        </div>
+        <div class="slide__image">
+            <img
+                    :src="image"
+                    alt="Image Not Found"
+                    style="width: 100%"
+            >
+            {% comment %}<span class="move_button" style="left: 0">&#10094;</span>
+            <span class="move_button" style="right: 0">&#10095;</span>{% endcomment %}
+            <audio
+                :src="active ? audio : ''"
+                controls autoplay
+                class="slide__audio"
+        ></audio>
+        </div>
+
+    <form class="slide__form">
+        <div class="radio">
+            <div>
+                <label>Agree</label>
+                <input type="radio" name="agree" value="AA" v-model="agreement">
+            </div>
+            <div>
+                <label>Disagree</label>
+                <input type="radio" name="agree" value="DA" v-model="agreement">
+            </div>
+            <div>
+                <label>Partial Agree</label>
+                <input type="radio" name="agree" value="PA" v-model="agreement">
+            </div>
+        </div>
+        <div class="input">
+            <label for="suggestion">Suggestions:</label>
+            <textarea id="suggestion" rows="2" style="width: 100%" v-model="suggestion"></textarea>
+        </div>
+        <div class="input">
+            <label for="comment">Comment:</label>
+            <textarea id="comment" rows="2" style="width: 100%" v-model="comment"></textarea>
+        </div>
+        <button type="button" @click="back">Back</button>
+        <button type="button" @click="submit" style="float: right;">Next</button>
+    </form>
+    </div>
+</template>
+<div class="title_bar">
+    <h3>{{  presentation.name }}</h3> by {{ presentation.author }}
+</div>
+<div id="app">
+    <template v-if="infoSubmitted">
+        <template v-for="(slide, index) in slides">
+            <slide-comp
+                    v-show="index === visibleSlide"
+                    v-bind="slide"
+                    :user-data="info"
+                    :active="index === visibleSlide"
+                    :serial="[index + 1, slides.length]"
+                    @next="showNextSlide"
+                    @back="showBackSlide"
+            ></slide-comp>
+        </template>
+    </template>
+    <template v-else>
+        <div class="slide__container">
+        <div style="margin: auto; display: flex; flex-direction: column; padding: 20px;">
+            Please enter your Info:<br><br>
+            <label>Name</label><input type="text" v-model="name"><br>
+            <label>Mobile</label><input type="text" v-model="mobile"><br>
+            <label>Email</label><input type="text" v-model="email"><br>
+            <button type="button" @click="submitInfo">Submit</button>
+        </div>
+    </div>
+    </template>
+</div>
+
+{{ slides|json_script:"slidesList" }}
+<script>
+    const slideComp = {
+        template: document.getElementById('slideComp').innerHTML,
+        delimiters: ['[[', ']]'],
+        props: ['id', 'name', 'image', 'audio', 'userData', 'active', 'serial'],
+        data() {
+            return {
+                agreement: 'AA',
+                suggestion: '',
+                comment: '',
+            };
+        },
+        computed: {
+            formData() {
+                const { agreement, suggestion, comment } = this
+                return {
+                    ...this.userData,
+                    agreement,
+                    suggestion,
+                    comment,
+                    slide: this.id
+                }
+            },
+        },
+        methods: {
+            submit() {
+                axios.post('/feedback', this.formData)
+                    .then((res) => {
+                        this.$emit('next');
+                    })
+                    .catch((err) => console.log(err));
+            },
+            back() {
+                this.$emit('back');
+            },
+        },
+    };
+
+    let app = new Vue({
+        delimiters: ['[[', ']]'],
+        el: '#app',
+        components: {
+            'slide-comp': slideComp,
+        },
+        data: {
+            slides: JSON.parse(document.getElementById('slidesList').textContent),
+            visibleSlide: 0,
+            name: 'name',
+            mobile: '9404141035',
+            email: 'ashwin@gmail.com',
+            infoSubmitted: false,
+        },
+        computed: {
+            infoValid() {
+                return /^[a-zA-Z ]{5,}$/.test(this.name) &&
+                    /^[0-9]{10,12}$/.test(this.mobile) &&
+                    /^\S+@\S+\.\S+$/.test(this.email)
+            },
+            info() {
+                const { name, mobile, email } = this;
+                return { name, mobile, email };
+            },
+        },
+        methods: {
+            submitInfo() {
+                this.infoSubmitted = this.infoValid;
+            },
+            showNextSlide() {
+                if (this.slides.length !== this.visibleSlide + 1) this.visibleSlide += 1;
+            },
+            showBackSlide() {
+                if (this.visibleSlide > 0) this.visibleSlide -= 1;
+            },
+        },
+    });
+</script>
+</body>
+</html>
