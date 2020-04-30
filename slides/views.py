@@ -13,6 +13,13 @@ class FeedBackForm(ModelForm):
         fields = '__all__'
 
 
+def home_view(request):
+    context = {
+        'presentations': Presentation.objects.all()
+    }
+    return render(request, 'home.html', context)
+
+
 def presentation_view(request, pk):
 
     def get_slide_obj(slide):

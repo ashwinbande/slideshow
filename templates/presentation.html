@@ -142,6 +142,11 @@
             <label>Mobile</label><input type="text" v-model="mobile"><br>
             <label>Email</label><input type="text" v-model="email"><br>
             <button type="button" @click="submitInfo">Submit</button>
+            <ul style="padding: 15px">
+                <template v-for="error in errors">
+                    <li style="color: red">[[ error ]]</li>
+                </template>
+            </ul>
         </div>
     </div>
     </template>
@@ -195,12 +200,19 @@
         data: {
             slides: JSON.parse(document.getElementById('slidesList').textContent),
             visibleSlide: 0,
-            name: 'name',
-            mobile: '9404141035',
-            email: 'ashwin@gmail.com',
+            name: '',
+            mobile: '',
+            email: '',
             infoSubmitted: false,
         },
         computed: {
+            errors() {
+                const errors = [];
+                if (!/^[a-zA-Z ]{5,}$/.test(this.name)) errors.push('Name is Short!');
+                if (!/^[0-9]{10,12}$/.test(this.mobile)) errors.push('Mobile must be 10 Digits!');
+                if (!/^\S+@\S+\.\S+$/.test(this.email)) errors.push('Invalid Email');
+                return errors;
+            },
             infoValid() {
                 return /^[a-zA-Z ]{5,}$/.test(this.name) &&
                     /^[0-9]{10,12}$/.test(this.mobile) &&
